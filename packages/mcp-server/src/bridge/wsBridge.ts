@@ -16,12 +16,19 @@ function resolveDocsRoot(): string | undefined {
 	if (env) return env;
 
 	// Repo default (when running from repo root)
-	const cwdCandidate = path.resolve(process.cwd(), 'packages', 'eda-extension', 'docs');
+	const cwdCandidate = path.resolve(process.cwd(), 'docs');
 	if (fs.existsSync(cwdCandidate)) return cwdCandidate;
 
+	// Backward compatibility (older repo layout)
+	const cwdLegacyCandidate = path.resolve(process.cwd(), 'packages', 'eda-extension', 'docs');
+	if (fs.existsSync(cwdLegacyCandidate)) return cwdLegacyCandidate;
+
 	// Fallback: relative to this file (useful when running from built dist/)
-	const metaCandidate = fileURLToPath(new URL('../../../../eda-extension/docs', import.meta.url));
+	const metaCandidate = fileURLToPath(new URL('../../../../docs', import.meta.url));
 	if (fs.existsSync(metaCandidate)) return metaCandidate;
+
+	const metaLegacyCandidate = fileURLToPath(new URL('../../../../packages/eda-extension/docs', import.meta.url));
+	if (fs.existsSync(metaLegacyCandidate)) return metaLegacyCandidate;
 
 	return undefined;
 }

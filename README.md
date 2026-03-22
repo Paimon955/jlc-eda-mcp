@@ -59,6 +59,9 @@ printf '%s\n' '{"type":"request","id":"1","method":"tools.call","params":{"name"
 
 - Skills 入口：`skills/jlceda-eda-rest/SKILL.md`
   - 区域选取/读取/编辑/加速拆分文档：`skills/jlceda-eda-rest/docs/`
+- “原理图即代码（Schematic-as-Code）”：
+  - 方案与里程碑：`docs/SCHEMATIC_AS_CODE_PLAN.md`
+  - websocat 交互 Demo：`docs/SCHEMATIC_AS_CODE_DEMO.md`
 
 
 ## ~~MCP（stdio）支持~~

@@ -99,6 +99,7 @@ const ExportNetlistSchema = z.object({
 	netlistType: z.string().min(1).optional(),
 	savePath: z.string().min(1).optional(),
 	fileName: z.string().min(1).optional(),
+	returnBase64: z.boolean().optional(),
 	force: z.boolean().optional(),
 });
 
@@ -505,6 +506,7 @@ export function createToolRegistry(opts: { getStatus: () => BridgeStatusSnapshot
 					netlistType: { type: 'string' },
 					savePath: { type: 'string' },
 					fileName: { type: 'string' },
+					returnBase64: { type: 'boolean' },
 					force: { type: 'boolean' },
 				},
 				additionalProperties: false,

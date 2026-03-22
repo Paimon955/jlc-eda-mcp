@@ -39,6 +39,9 @@ cd jlc-eda-mcp
 
 - 新接入/零上下文：`docs/welcome_new_agent.md`
 - `skills/jlceda-eda-rest/SKILL.md`
+- “原理图即代码（Schematic-as-Code）”：
+  - 方案与里程碑：`../../docs/SCHEMATIC_AS_CODE_PLAN.md`
+  - websocat 交互 Demo：`../../docs/SCHEMATIC_AS_CODE_DEMO.md`
 
 插件扩展会在打开工程时候自动启动：    
 ![alt text](./images/md/image-3.png)

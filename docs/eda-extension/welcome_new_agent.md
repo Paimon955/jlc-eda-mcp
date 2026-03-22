@@ -6,7 +6,7 @@
 - 增量编辑/补画原理图（放器件/连线/加网标/导出）
 - 必要时“全权限”透传调用 `globalThis.eda.*`（危险，但能兜底）
 
-如果你只想最快上手：直接从 `skills/README.md` 和 `skills/jlceda-eda-rest/SKILL.md` 开始。
+如果你只想最快上手：直接从 `../skills/Repo-local-skills.md` 和 `../skills/jlceda-eda-rest/SKILL.md` 开始。
 
 ---
 
@@ -24,7 +24,7 @@
    - 响应：`{ type:'response', id:'1', result?:..., error?:... }`
    - 连接后扩展会先发一条 `hello`（包含扩展版本号）
 
-参考协议：`../../../docs/PROTOCOL.md`
+参考协议：`../PROTOCOL.md`
 
 ---
 
@@ -83,7 +83,7 @@ $req | websocat -B 10485760 -t --no-close --oneshot ws-l:127.0.0.1:9050 -
 - `hello`：例如 `{"type":"hello","app":{"name":"jlceda-mcp-bridge","version":"0.0.xx",...}}`
 - `response`：例如 `{"type":"response","id":"1","result":{"pong":true,...}}`
 
-如果你连 `ping` 都跑不通：先别做别的，去看 `skills/jlceda-eda-rest/SKILL.md` 的“排错/验证未使用旧 mcp-server”部分。
+如果你连 `ping` 都跑不通：先别做别的，去看 `../skills/jlceda-eda-rest/SKILL.md` 的“排错/验证未使用旧 mcp-server”部分。
 
 ---
 
@@ -102,7 +102,7 @@ $req | websocat -B 10485760 -t --no-close --oneshot ws-l:127.0.0.1:9050 -
 - `schematic.applyIr`
 - `eda.invoke / eda.get / eda.keys`（全量透传，危险）
 
-完整清单：`../../../docs/EDA_EXTENSION_RPC.md`
+完整清单：`../EDA_EXTENSION_RPC.md`
 
 ### B) 用 `tools.call` 调用 `jlc.*` tools（推荐给 AI）
 
@@ -115,7 +115,7 @@ printf '%s\n' '{"type":"request","id":"1","method":"tools.list","closeAfterRespo
   | websocat -B 10485760 -t --no-close --oneshot ws-l:127.0.0.1:9050 -
 ```
 
-> 多窗口/多工程：端口可能不是 `9050`。推荐先按 `skills/jlceda-eda-rest/SKILL.md` 的“LLM 自动探测端口”脚本扫描 `9050-9059` 抓 `hello`（无需用户报端口）；兜底再让用户在 EDA 里打开 `MCP Bridge -> Status` 查看该窗口端口，或连上任意一个端口后调用 `jlc.bridge.port_leases`。
+> 多窗口/多工程：端口可能不是 `9050`。推荐先按 `../skills/jlceda-eda-rest/SKILL.md` 的“LLM 自动探测端口”脚本扫描 `9050-9059` 抓 `hello`（无需用户报端口）；兜底再让用户在 EDA 里打开 `MCP Bridge -> Status` 查看该窗口端口，或连上任意一个端口后调用 `jlc.bridge.port_leases`。
 
 2) 调用一个工具（示例：`jlc.bridge.ping`）：
 
@@ -148,12 +148,12 @@ printf '%s\n' '{"type":"request","id":"1","method":"tools.call","params":{"name"
    - RPC：`ensureSchematicPage`
    - tool：`jlc.schematic.ensure_page`
 
-2) 按 `skills/jlceda-eda-rest/SKILL.md` 的 **Fast path** 读取：
+2) 按 `../skills/jlceda-eda-rest/SKILL.md` 的 **Fast path** 读取：
    - `eda.invoke sch_SelectControl.getAllSelectedPrimitives_PrimitiveId`（selectedIds）
    - `schematic.listComponents` / `schematic.listTexts`（取 `result.items`）
    - 本地用 `primitiveId ∈ selectedIds` 过滤，然后输出“短摘要”（关键器件/网名/电源/接口）
 
-详细说明：`skills/jlceda-eda-rest/docs/02-region-read.md`
+详细说明：`../skills/jlceda-eda-rest/docs/02-region-read.md`
 
 优点：只读选区，响应更小更快；通常比全页“快照”稳定很多。
 
@@ -169,7 +169,7 @@ printf '%s\n' '{"type":"request","id":"1","method":"tools.call","params":{"name"
 
 用 tool：`jlc.schematic.apply_ir`（底层调用 `schematic.applyIr`）
 
-规范：`../../../docs/SCHEMATIC_IR.md`
+规范：`../SCHEMATIC_IR.md`
 
 建议策略（非常重要）：
 
@@ -235,8 +235,8 @@ Stop-Process -Id <PID> -Force
 
 ## 5) 推荐阅读顺序（给 AI）
 
-1) `skills/jlceda-eda-rest/SKILL.md`（最重要：如何通过 websocat 稳定驱动）
-2) `skills/jlceda-eda-rest/docs/`（按场景拆好的操作手册）
-3) `../../../docs/EDA_EXTENSION_RPC.md`（RPC 方法清单）
-4) `../../../docs/SCHEMATIC_IR.md`（画图 IR 规范）
-5) `../../README.md`（扩展安装与常见问题）
+1) `../skills/jlceda-eda-rest/SKILL.md`（最重要：如何通过 websocat 稳定驱动）
+2) `../skills/jlceda-eda-rest/docs/`（按场景拆好的操作手册）
+3) `../EDA_EXTENSION_RPC.md`（RPC 方法清单）
+4) `../SCHEMATIC_IR.md`（画图 IR 规范）
+5) `../../packages/eda-extension/README.md`（扩展安装与常见问题）

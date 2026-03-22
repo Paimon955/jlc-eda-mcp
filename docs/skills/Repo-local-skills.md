@@ -2,7 +2,7 @@
 
 这些 skills 用来把“如何驱动嘉立创 EDA Pro（通过 `jlceda-eda-mcp` 桥接）”固化成可复用流程，方便 LLM 侧在 **不安装 Node/MCP** 的前提下，直接通过 **WebSocket RPC + websocat（短驻）** 调用 `jlc.*` 工具与 `eda.*` 透传能力。
 
-新接入/零上下文建议先看：`../welcome_new_agent.md`
+新接入/零上下文建议先看：`../eda-extension/welcome_new_agent.md`
 
 ## Skills
 

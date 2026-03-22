@@ -12,6 +12,32 @@ import {
 	safeFileName,
 } from '../bridge/validate';
 
+function encodeBase64(bytes: Uint8Array): string {
+	const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+	const out: Array<string> = [];
+	for (let i = 0; i < bytes.length; i += 3) {
+		const b1 = bytes[i] ?? 0;
+		const hasB2 = i + 1 < bytes.length;
+		const hasB3 = i + 2 < bytes.length;
+		const b2 = hasB2 ? bytes[i + 1]! : 0;
+		const b3 = hasB3 ? bytes[i + 2]! : 0;
+		const triple = (b1 << 16) | (b2 << 8) | b3;
+		out.push(
+			alphabet[(triple >> 18) & 63]!,
+			alphabet[(triple >> 12) & 63]!,
+			hasB2 ? alphabet[(triple >> 6) & 63]! : '=',
+			hasB3 ? alphabet[triple & 63]! : '=',
+		);
+	}
+	return out.join('');
+}
+
+async function blobToBase64(blob: Blob): Promise<{ base64: string; sizeBytes: number; mimeType?: string }> {
+	const buf = await blob.arrayBuffer();
+	const bytes = new Uint8Array(buf);
+	return { base64: encodeBase64(bytes), sizeBytes: bytes.byteLength, mimeType: blob.type || undefined };
+}
+
 async function requireSchematicPage(): Promise<{ tabId: string; uuid: string }> {
 	const info = await eda.dmt_SelectControl.getCurrentDocumentInfo();
 	if (!info) throw rpcError('NO_ACTIVE_DOCUMENT', 'No active document');
@@ -30,18 +56,59 @@ function joinPath(folderOrFile: string, fileName: string): string {
 	return folderOrFile;
 }
 
-export async function exportNetlistFile(params: unknown): Promise<{ savedTo?: string; fileName: string; netlistType: string; downloadTriggered?: boolean }> {
+function looksLikeFilePath(savePath: string): boolean {
+	const trimmed = savePath.trim();
+	if (!trimmed) return false;
+	if (endsWithPathSeparator(trimmed)) return false;
+	const lastSep = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'));
+	const base = lastSep >= 0 ? trimmed.slice(lastSep + 1) : trimmed;
+	return base.length >= 3 && base.includes('.') && !base.startsWith('.') && !base.endsWith('.');
+}
+
+function ensureFolderUri(savePath: string): string {
+	const trimmed = savePath.trim();
+	if (endsWithPathSeparator(trimmed)) return trimmed;
+	if (looksLikeFilePath(trimmed)) return trimmed;
+	const sep = trimmed.includes('/') && !trimmed.includes('\\') ? '/' : '\\';
+	return `${trimmed}${sep}`;
+}
+
+export async function exportNetlistFile(
+	params: unknown,
+): Promise<
+	| { savedTo?: string; fileName: string; netlistType: string; downloadTriggered?: boolean }
+	| { fileName: string; netlistType: string; base64: string; sizeBytes: number; mimeType?: string }
+> {
 	await requireSchematicPage();
 
 	const input = params ? asObject(params, 'params') : {};
 	const netlistType = asOptionalString(input.netlistType, 'netlistType') ?? 'JLCEDA';
 	const savePath = asOptionalString(input.savePath, 'savePath');
 	const fileNameInput = asOptionalString(input.fileName, 'fileName');
+	const returnBase64 = asOptionalBoolean(input.returnBase64, 'returnBase64') ?? false;
 	const force = asOptionalBoolean(input.force, 'force') ?? true;
 
-	const fileName = safeFileName(fileNameInput || `jlceda_mcp_netlist_${getTimestampForFileName()}.net`);
-	const file = await eda.sch_ManufactureData.getNetlistFile(fileName, netlistType as any);
+	const defaultExt = netlistType === 'EasyEDA' ? '.enet' : '.net';
+	const fileName = safeFileName(fileNameInput || `jlceda_mcp_netlist_${getTimestampForFileName()}${defaultExt}`);
+
+	let file: File | undefined;
+	try {
+		file = await eda.sch_ManufactureData.getNetlistFile(fileName, netlistType as any);
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
+		throw rpcError('EXPORT_FAILED', `eda.sch_ManufactureData.getNetlistFile threw: ${msg}`);
+	}
 	if (!file) throw rpcError('EXPORT_FAILED', 'Failed to get netlist file');
+
+	if (returnBase64) {
+		try {
+			const { base64, sizeBytes, mimeType } = await blobToBase64(file);
+			return { fileName, netlistType, base64, sizeBytes, mimeType };
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			throw rpcError('EXPORT_FAILED', `Failed to read exported netlist file content: ${msg}`);
+		}
+	}
 
 	let resolvedSavePath = savePath;
 	if (!resolvedSavePath) {
@@ -54,9 +121,24 @@ export async function exportNetlistFile(params: unknown): Promise<{ savedTo?: st
 	}
 
 	if (resolvedSavePath) {
-		const ok = await eda.sys_FileSystem.saveFileToFileSystem(resolvedSavePath, file, fileName, force);
-		if (!ok) throw rpcError('SAVE_FILE_FAILED', 'Failed to save netlist file to file system');
-		return { savedTo: joinPath(resolvedSavePath, fileName), fileName, netlistType };
+		const userProvidedSavePath = Boolean(savePath);
+		const uri = ensureFolderUri(resolvedSavePath);
+		try {
+			const ok = await eda.sys_FileSystem.saveFileToFileSystem(uri, file, fileName, force);
+			if (!ok) throw rpcError('SAVE_FILE_FAILED', 'Failed to save netlist file to file system');
+			return { savedTo: joinPath(uri, fileName), fileName, netlistType };
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			if (!userProvidedSavePath) {
+				// Best-effort fallback: trigger a download when direct filesystem write is unavailable.
+				await eda.sys_FileSystem.saveFile(file, fileName);
+				return { fileName, netlistType, downloadTriggered: true };
+			}
+			throw rpcError(
+				'SAVE_FILE_FAILED',
+				`sys_FileSystem.saveFileToFileSystem threw: ${msg}. Note: savePath must be an absolute path; if it's a folder, end it with \\\\ or /.`,
+			);
+		}
 	}
 
 	await eda.sys_FileSystem.saveFile(file, fileName);

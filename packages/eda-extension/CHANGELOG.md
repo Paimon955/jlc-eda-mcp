@@ -3,6 +3,10 @@
 本文件记录 `packages/eda-extension`（JLCEDA Pro 扩展：`jlceda-mcp-bridge`）的更新情况。  
 版本号与扩展清单一致：`extension.json` / `package.json`。
 
+## 0.0.18 - 2026-03-22
+
+- 文档解耦：扩展包不再携带大段 docs/skills markdown（仅保留基础 README），仓库文档统一迁移到根目录 `docs/` 维护
+
 ## 0.0.17 - 2026-02-28
 
 - 修复多窗口端口协商：端口租约改用全局存储（`localStorage`）做跨工程窗口协调，避免“每个工程都认为 9050 空闲”导致的冲突

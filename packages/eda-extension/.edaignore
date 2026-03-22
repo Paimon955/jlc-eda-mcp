@@ -19,3 +19,7 @@
 /tsconfig.json
 debug.log
 
+# Keep the .eext minimal: exclude docs and markdown (except README.md)
+/docs/
+*.md
+!/README.md

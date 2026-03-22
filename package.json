@@ -1,7 +1,7 @@
 {
 	"name": "jlceda-mcp",
 	"private": false,
-	"version": "0.0.17",
+	"version": "0.0.18",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/XuF163/jlc-eda-mcp"
@@ -22,7 +22,13 @@
 		"build": "npm run build:mcp && npm run build:ext",
 		"typecheck:mcp": "npm -w packages/mcp-server run typecheck",
 		"typecheck:ext": "npm -w packages/eda-extension run typecheck",
-		"typecheck": "npm run typecheck:mcp && npm run typecheck:ext"
+		"typecheck": "npm run typecheck:mcp && npm run typecheck:ext",
+		"docs:dev": "vitepress dev docs",
+		"docs:build": "vitepress build docs",
+		"docs:preview": "vitepress preview docs"
+	},
+	"devDependencies": {
+		"vitepress": "^1.6.4"
 	},
 	"engines": {
 		"node": ">=20.5.0"

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { createHash } from 'node:crypto';
+import path from 'node:path';
+import * as fsp from 'node:fs/promises';
 
 import type { WsBridge } from '../bridge/wsBridge.js';
 import { SchematicIrSchema } from '../ir/schematicIr.js';
@@ -87,8 +89,25 @@ const ExportNetlistSchema = z.object({
 	netlistType: z.string().min(1).optional(),
 	savePath: z.string().min(1).optional(),
 	fileName: z.string().min(1).optional(),
+	returnBase64: z.boolean().optional(),
 	force: z.boolean().optional(),
 });
+
+function looksLikeFilePath(savePath: string): boolean {
+	const trimmed = savePath.trim();
+	if (!trimmed) return false;
+	if (trimmed.endsWith('/') || trimmed.endsWith('\\')) return false;
+	const base = path.basename(trimmed);
+	return base.length >= 3 && base.includes('.') && !base.startsWith('.') && !base.endsWith('.');
+}
+
+function ensureFolderUri(savePath: string): string {
+	const trimmed = savePath.trim();
+	if (!trimmed) return trimmed;
+	if (trimmed.endsWith('/') || trimmed.endsWith('\\')) return trimmed;
+	if (looksLikeFilePath(trimmed)) return trimmed;
+	return trimmed + path.sep;
+}
 
 const GetNetlistSchema = z.object({
 	netlistType: z.string().min(1).optional(),
@@ -465,12 +484,55 @@ export function createToolRegistry(bridge: WsBridge): Array<ToolDefinition> {
 					netlistType: { type: 'string' },
 					savePath: { type: 'string' },
 					fileName: { type: 'string' },
+					returnBase64: { type: 'boolean' },
 					force: { type: 'boolean' },
 				},
 				additionalProperties: false,
 			},
 			run: async (args) => {
-				const parsed = ExportNetlistSchema.parse(args);
+				const parsed = ExportNetlistSchema.parse(args) as any;
+				const force = parsed.force ?? true;
+				const savePathRaw = typeof parsed.savePath === 'string' ? parsed.savePath.trim() : '';
+
+				// Prefer saving from the mcp-server process (Node) when savePath is given.
+				// Reason: Some EDA builds/extensions report `TypeError: Failed to fetch` from `sys_FileSystem.saveFileToFileSystem`.
+				// The base64 path still uses official EDA APIs to generate the netlist; we just perform the disk write here.
+				if (!parsed.returnBase64 && savePathRaw) {
+					const absSavePath = path.isAbsolute(savePathRaw) ? savePathRaw : path.resolve(process.cwd(), savePathRaw);
+					const savePathIsFile = looksLikeFilePath(absSavePath);
+					const requestedFileName = typeof parsed.fileName === 'string' && parsed.fileName.trim()
+						? parsed.fileName.trim()
+						: savePathIsFile
+							? path.basename(absSavePath)
+							: undefined;
+
+					const exportRes = (await bridge.call(
+						'exportSchematicNetlistFile',
+						{ netlistType: parsed.netlistType, fileName: requestedFileName, returnBase64: true },
+						120_000,
+					)) as any;
+
+					const base64 = exportRes?.base64;
+					if (typeof base64 !== 'string' || !base64) {
+						throw new Error('Netlist export did not return base64 content');
+					}
+
+					const outFileName = typeof exportRes?.fileName === 'string' && exportRes.fileName.trim()
+						? exportRes.fileName.trim()
+						: requestedFileName ?? 'netlist';
+					const outFilePath = savePathIsFile ? absSavePath : path.join(absSavePath, outFileName);
+
+					await fsp.mkdir(path.dirname(outFilePath), { recursive: true });
+					const bytes = Buffer.from(base64, 'base64');
+					await fsp.writeFile(outFilePath, bytes, { flag: force ? 'w' : 'wx' });
+
+					return asJsonText({
+						savedTo: outFilePath,
+						fileName: path.basename(outFilePath),
+						netlistType: exportRes?.netlistType ?? parsed.netlistType ?? 'JLCEDA',
+						sizeBytes: bytes.byteLength,
+					});
+				}
 				const result = await bridge.call('exportSchematicNetlistFile', parsed, 120_000);
 				return asJsonText(result);
 			},
