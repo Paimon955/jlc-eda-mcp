@@ -13,3 +13,5 @@ debug.log
 docs/.vitepress/cache/
 docs/.vitepress/.temp/
 docs/.vitepress/dist/
+__pycache__/
+*.pyc
