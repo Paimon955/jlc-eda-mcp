@@ -11,4 +11,5 @@ debug.log
 .jlceda-bridge-discover/
 .jlceda-bridge-test/
 docs/.vitepress/cache/
+docs/.vitepress/.temp/
 docs/.vitepress/dist/
