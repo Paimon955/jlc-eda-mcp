@@ -13,6 +13,7 @@ export default defineConfig({
 			{ text: '协议', link: '/PROTOCOL' },
 			{ text: 'Tools', link: '/MCP_TOOLS' },
 			{ text: 'Skills', link: '/skills/Repo-local-skills' },
+			{ text: '调研', link: '/research/llm-schematic-with-skidl-netlistsvg-pro-api' },
 		],
 		sidebar: [
 			{
@@ -46,6 +47,10 @@ export default defineConfig({
 					{ text: 'Plan', link: '/SCHEMATIC_AS_CODE_PLAN' },
 					{ text: 'Demo', link: '/SCHEMATIC_AS_CODE_DEMO' },
 				],
+			},
+			{
+				text: '调研 / Research',
+				items: [{ text: 'LLM 原理图生成提升', link: '/research/llm-schematic-with-skidl-netlistsvg-pro-api' }],
 			},
 			{
 				text: '给 AI 的阅读入口',
