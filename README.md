@@ -91,4 +91,5 @@ node packages/mcp-server/dist/cli.js --port 9050
 </details>  
 
 ## 开源许可  
-AGPLv3
+AGPLv3    
+本项目是最早的社区实现，二开请注明代码来源，不要以为拿ai洗一遍代码就变成自己的了
